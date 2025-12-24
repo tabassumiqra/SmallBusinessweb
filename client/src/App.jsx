@@ -1,24 +1,23 @@
-import SearchBar from './components/SearchBar'
-import AddBusiness from './components/AddBusiness'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HomePage, AddBusinessPage, AuthCallbackPage } from './pages';
+import './App.css';
 
+/**
+ * Main App Component
+ * Handles routing for the application
+ */
 function App() {
   return (
-    <div className="App">
-      <div className="home-container">
-        <header className="app-header">
-          <h1 className="app-title">Small Business Web</h1>
-          <p className="app-subtitle">Discover and connect with local businesses</p>
-        </header>
-        
-        <main className="main-content">
-          <SearchBar />
-          <AddBusiness />
-        </main>
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/add-business" element={<AddBusinessPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        </Routes>
       </div>
-    </div>
-  )
+    </Router>
+  );
 }
 
-export default App
-
+export default App;

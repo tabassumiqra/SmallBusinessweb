@@ -9,6 +9,11 @@ Node.js/Express backend server for Small Business Web.
 - **dotenv** - Environment variable management
 - **cors** - Cross-Origin Resource Sharing
 - **mongoose** - MongoDB object modeling
+- **jsonwebtoken** - JWT token generation
+- **bcryptjs** - Password hashing
+- **passport** - Authentication middleware
+- **passport-google-oauth20** - Google OAuth strategy
+- **passport-jwt** - JWT strategy for Passport
 
 ## Setup
 
@@ -42,6 +47,18 @@ npm run dev
 - `POST /api/upload` - Single file upload
 - `POST /api/upload/multiple` - Multiple file upload
 
+### Authentication
+- `POST /api/auth/signup` - User registration
+- `POST /api/auth/login` - User login
+- `GET /api/auth/google` - Initiate Google OAuth
+- `GET /api/auth/google/callback` - Google OAuth callback
+- `GET /api/auth/me` - Get current user (Protected)
+
+### Business (Protected)
+- `POST /api/businesses` - Create business with photos (requires authentication)
+- `GET /api/businesses` - Get all businesses
+- `GET /api/businesses/:id` - Get business by ID
+
 ### Example CRUD (Mongoose)
 - `POST /api/examples` - Create example
 - `GET /api/examples` - Get all examples
@@ -54,4 +71,9 @@ npm run dev
 - `PORT` - Server port (default: 5000)
 - `NODE_ENV` - Environment (development/production)
 - `MONGODB_URI` - MongoDB connection string (default: mongodb://localhost:27017/smallbusinessweb)
+- `JWT_SECRET` - Secret key for JWT tokens (required for production)
+- `GOOGLE_CLIENT_ID` - Google OAuth Client ID
+- `GOOGLE_CLIENT_SECRET` - Google OAuth Client Secret
+- `GOOGLE_CALLBACK_URL` - Google OAuth callback URL (default: /api/auth/google/callback)
+- `FRONTEND_URL` - Frontend URL for OAuth redirects (default: http://localhost:5173)
 

@@ -96,10 +96,28 @@
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
   z-index: 1000;
-  max-height: 300px;
+  max-height: 400px;
   overflow-y: auto;
   border: 1px solid #e5e7eb;
   animation: slideDown 0.2s ease;
+}
+
+.suggestions-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.suggestions-header svg {
+  color: #6366f1;
 }
 
 @keyframes slideDown {
@@ -118,8 +136,9 @@
   align-items: center;
   padding: 0.875rem 1rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
   border-bottom: 1px solid #f3f4f6;
+  gap: 0.75rem;
 }
 
 .suggestion-item:last-child {
@@ -128,6 +147,11 @@
 
 .suggestion-item:hover {
   background-color: #f9fafb;
+  padding-left: 1.25rem;
+}
+
+.suggestion-item:active {
+  background-color: #f3f4f6;
 }
 
 .suggestion-icon {
@@ -139,6 +163,18 @@
 .suggestion-item span {
   color: #1f2937;
   font-size: 0.95rem;
+  flex: 1;
+}
+
+.suggestion-arrow {
+  color: #d1d5db;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  transform: rotate(-45deg);
+}
+
+.suggestion-item:hover .suggestion-arrow {
+  opacity: 1;
 }
 
 .search-filters {
