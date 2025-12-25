@@ -16,10 +16,40 @@ const businessSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  // Detailed address fields
+  shopNo: {
+    type: String,
+    trim: true
+  },
+  street: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  city: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  country: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  // Keep legacy location field for backward compatibility and full address display
   location: {
     type: String,
     required: true,
     trim: true
+  },
+  // Coordinates for map display
+  coordinates: {
+    latitude: {
+      type: Number
+    },
+    longitude: {
+      type: Number
+    }
   },
   phone: {
     type: String,

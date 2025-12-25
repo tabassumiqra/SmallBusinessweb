@@ -99,7 +99,7 @@ const SearchBar = ({ onSearch }) => {
             value={searchQuery}
             onChange={handleInputChange}
             onFocus={handleInputFocus}
-            onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+            onBlur={() => setTimeout(() => setIsFocused(false), 300)}
           />
           {searchQuery && <ClearButton onClick={clearSearch} />}
           <button type="submit" className="search-button">
@@ -171,7 +171,10 @@ const SuggestionsDropdown = ({ suggestions, isVisible, onSelect }) => {
         <div
           key={index}
           className="suggestion-item"
-          onClick={() => onSelect(suggestion)}
+          onMouseDown={(e) => {
+            e.preventDefault(); // Prevent blur from firing
+            onSelect(suggestion);
+          }}
         >
           <svg
             className="suggestion-icon"

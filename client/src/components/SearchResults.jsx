@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import BusinessCard from './BusinessCard';
 import './SearchResults.css';
 
@@ -9,10 +10,23 @@ import './SearchResults.css';
  * @param {string} searchQuery - Current search query
  */
 const SearchResults = ({ businesses = [], loading = false, searchQuery = '' }) => {
+  const resultsRef = useRef(null);
+
+  // Auto-scroll to results when they appear
+  useEffect(() => {
+    if (!loading && businesses.length > 0 && resultsRef.current) {
+      // Smooth scroll to the results section
+      resultsRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    }
+  }, [loading, businesses.length]);
+
   // Loading state
   if (loading) {
     return (
-      <div className="search-results-container">
+      <div className="search-results-container" ref={resultsRef}>
         <div className="search-results-loading">
           <div className="loading-spinner-large"></div>
           <p>Searching for businesses...</p>
@@ -24,7 +38,7 @@ const SearchResults = ({ businesses = [], loading = false, searchQuery = '' }) =
   // No results
   if (!businesses || businesses.length === 0) {
     return (
-      <div className="search-results-container">
+      <div className="search-results-container" ref={resultsRef}>
         <div className="search-results-empty">
           <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <circle cx="11" cy="11" r="8"></circle>
@@ -47,7 +61,7 @@ const SearchResults = ({ businesses = [], loading = false, searchQuery = '' }) =
 
   // Results found
   return (
-    <div className="search-results-container">
+    <div className="search-results-container" ref={resultsRef}>
       <div className="search-results-header">
         <h2 className="search-results-title">
           {searchQuery ? (

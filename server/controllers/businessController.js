@@ -8,31 +8,63 @@ import { formatBusinessResponse, formatFileResponse } from '../utils/index.js';
  */
 export const createBusiness = async (req, res) => {
   try {
-    const { businessName, category, description, location, phone, email } = req.body;
+    const { 
+      businessName, 
+      category, 
+      description, 
+      shopNo,
+      street,
+      city,
+      country,
+      location, 
+      latitude,
+      longitude,
+      phone, 
+      email 
+    } = req.body;
 
     // Validate required fields
-    if (!businessName || !category || !description || !location || !email) {
+    if (!businessName || !category || !description || !street || !city || !country || !email) {
       return res.status(400).json({
-        error: 'Missing required fields: businessName, category, description, location, email'
+        error: 'Missing required fields: businessName, category, description, street, city, country, email'
       });
     }
+
+    // Build full location string from address components if not provided
+    const fullLocation = location || [
+      shopNo,
+      street,
+      city,
+      country
+    ].filter(Boolean).join(', ');
 
     // Prepare photos array
     const photos = req.files
       ? req.files.map((file) => ({
           filename: file.filename,
           originalname: file.originalname,
-          path: file.path,
+          path: `uploads/${file.filename}`, // Store relative path for serving
           size: file.size
         }))
       : [];
+
+    // Prepare coordinates if provided
+    const coordinates = (latitude && longitude) ? {
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude)
+    } : undefined;
 
     // Create business
     const business = new Business({
       businessName,
       category,
       description,
-      location,
+      shopNo: shopNo || '',
+      street,
+      city,
+      country,
+      location: fullLocation,
+      coordinates,
       phone: phone || '',
       email,
       photos,

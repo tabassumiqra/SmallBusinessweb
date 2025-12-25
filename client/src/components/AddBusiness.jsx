@@ -13,7 +13,13 @@ const initialFormValues = {
   businessName: '',
   category: '',
   description: '',
+  shopNo: '',
+  street: '',
+  city: '',
+  country: '',
   location: '',
+  latitude: '',
+  longitude: '',
   phone: '',
   email: ''
 };

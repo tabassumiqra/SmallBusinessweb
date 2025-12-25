@@ -15,7 +15,13 @@ const initialFormValues = {
   businessName: '',
   category: '',
   description: '',
+  shopNo: '',
+  street: '',
+  city: '',
+  country: '',
   location: '',
+  latitude: '',
+  longitude: '',
   phone: '',
   email: ''
 };
@@ -204,7 +210,177 @@ const AddBusinessPage = () => {
  * Business Form Component
  */
 const BusinessForm = ({ form, previews, photoError, onPhotoChange, onRemovePhoto }) => {
-  const { values, errors, isSubmitting, handleChange, handleSubmit } = form;
+  const { values, errors, isSubmitting, handleChange, handleSubmit, setValues } = form;
+  const [gettingLocation, setGettingLocation] = useState(false);
+  const [locationError, setLocationError] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [speechError, setSpeechError] = useState('');
+  const [recognition, setRecognition] = useState(null);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognitionInstance = new SpeechRecognition();
+      
+      recognitionInstance.continuous = true;
+      recognitionInstance.interimResults = true;
+      recognitionInstance.lang = 'en-US';
+
+      recognitionInstance.onresult = (event) => {
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + ' ';
+          }
+        }
+
+        if (finalTranscript) {
+          setValues((prevValues) => ({
+            ...prevValues,
+            description: prevValues.description + finalTranscript
+          }));
+        }
+      };
+
+      recognitionInstance.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        
+        switch (event.error) {
+          case 'no-speech':
+            setSpeechError('No speech detected. Please try again.');
+            break;
+          case 'audio-capture':
+            setSpeechError('No microphone found. Please check your device.');
+            break;
+          case 'not-allowed':
+            setSpeechError('Microphone access denied. Please allow microphone access.');
+            break;
+          default:
+            setSpeechError('Error occurred in speech recognition.');
+            break;
+        }
+      };
+
+      recognitionInstance.onend = () => {
+        setIsListening(false);
+      };
+
+      setRecognition(recognitionInstance);
+    }
+  }, [setValues]);
+
+  // Toggle speech recognition
+  const toggleSpeechRecognition = () => {
+    if (!recognition) {
+      setSpeechError('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+      return;
+    }
+
+    if (isListening) {
+      recognition.stop();
+      setIsListening(false);
+      setSpeechError('');
+    } else {
+      setSpeechError('');
+      recognition.start();
+      setIsListening(true);
+    }
+  };
+
+  // Function to get current location and fill complete address
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setGettingLocation(true);
+    setLocationError('');
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        try {
+          // Use reverse geocoding to get address from coordinates
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
+          );
+          const data = await response.json();
+          
+          if (data.address) {
+            const address = data.address;
+            
+            // Extract all address components
+            const houseNumber = address.house_number || '';
+            const road = address.road || address.street || address.pedestrian || '';
+            const neighborhood = address.neighbourhood || address.suburb || '';
+            const city = address.city || address.town || address.village || address.municipality || '';
+            const state = address.state || address.province || '';
+            const country = address.country || '';
+            
+            // Build a comprehensive street address
+            let streetAddress = '';
+            if (houseNumber) streetAddress += houseNumber;
+            if (road) streetAddress += (streetAddress ? ' ' : '') + road;
+            if (!road && neighborhood) streetAddress += (streetAddress ? ', ' : '') + neighborhood;
+            
+            // Set all address fields
+            setValues({
+              ...values,
+              shopNo: houseNumber || '',
+              street: streetAddress || road || neighborhood || '',
+              city: city || state || '',
+              country: country || '',
+              latitude: latitude.toString(),
+              longitude: longitude.toString(),
+              location: data.display_name || ''
+            });
+            
+            setLocationError('');
+            
+            // Show success message
+            console.log('Location detected:', {
+              street: streetAddress,
+              city: city || state,
+              country: country
+            });
+          }
+        } catch (error) {
+          console.error('Error getting address:', error);
+          setLocationError('Could not retrieve location details. Please enter manually.');
+        } finally {
+          setGettingLocation(false);
+        }
+      },
+      (error) => {
+        setGettingLocation(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError('Location access denied. Please enable location permissions.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationError('Location information unavailable.');
+            break;
+          case error.TIMEOUT:
+            setLocationError('Location request timed out.');
+            break;
+          default:
+            setLocationError('An error occurred while getting your location.');
+            break;
+        }
+      },
+      {
+        enableHighAccuracy: true, // Request high accuracy GPS
+        timeout: 10000,           // 10 second timeout
+        maximumAge: 0             // Don't use cached location
+      }
+    );
+  };
 
   return (
     <form onSubmit={handleSubmit} className="business-form">
@@ -250,39 +426,173 @@ const BusinessForm = ({ form, previews, photoError, onPhotoChange, onRemovePhoto
 
       {/* Description */}
       <div className="form-group">
-        <label htmlFor="description" className="form-label">
-          Description <span className="required">*</span>
-        </label>
+        <div className="label-with-action">
+          <label htmlFor="description" className="form-label">
+            Description <span className="required">*</span>
+          </label>
+          <button
+            type="button"
+            className={`btn-speech ${isListening ? 'listening' : ''}`}
+            onClick={toggleSpeechRecognition}
+            title={isListening ? 'Stop speaking' : 'Click to speak'}
+          >
+            {isListening ? (
+              <>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+                </svg>
+                Stop
+              </>
+            ) : (
+              <>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="23"></line>
+                  <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+                Speak
+              </>
+            )}
+          </button>
+        </div>
         <textarea
           id="description"
           name="description"
           value={values.description}
           onChange={handleChange}
           className="form-input form-textarea"
-          placeholder="Tell us about your business, what makes it special..."
+          placeholder="Tell us about your business, what makes it special... (or click 'Speak' to use voice input)"
           rows={5}
           required
         />
+        {speechError && <div className="speech-error">{speechError}</div>}
+        {isListening && (
+          <div className="listening-indicator">
+            <div className="pulse-dot"></div>
+            <span>Listening... Speak now</span>
+          </div>
+        )}
       </div>
 
-      {/* Location & Phone */}
+      {/* Address Section Header */}
+      <div className="form-section-header">
+        <h3 className="section-title">Business Address</h3>
+        <button
+          type="button"
+          className="btn-current-location"
+          onClick={getCurrentLocation}
+          disabled={gettingLocation}
+          title="Auto-fill address based on your current GPS location"
+        >
+          {gettingLocation ? (
+            <>
+              <span className="location-spinner"></span>
+              Detecting Location...
+            </>
+          ) : (
+            <>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="3"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+              Use Current Location
+            </>
+          )}
+        </button>
+      </div>
+
+      {locationError && <div className="location-error">{locationError}</div>}
+      
+      {/* Location Helper Text */}
+      <div className="location-helper-text">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        Click "Use Current Location" to auto-fill your exact address. You can edit any field afterward.
+      </div>
+
+      {/* Shop Number & Street */}
       <div className="form-row">
         <div className="form-group">
-          <label htmlFor="location" className="form-label">
-            Location <span className="required">*</span>
+          <label htmlFor="shopNo" className="form-label">
+            Shop/Building Number
           </label>
           <input
             type="text"
-            id="location"
-            name="location"
-            value={values.location}
+            id="shopNo"
+            name="shopNo"
+            value={values.shopNo}
             onChange={handleChange}
             className="form-input"
-            placeholder="City, State or Full Address"
+            placeholder="e.g., Shop 123, Building A"
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="street" className="form-label">
+            Street Address <span className="required">*</span>
+          </label>
+          <input
+            type="text"
+            id="street"
+            name="street"
+            value={values.street}
+            onChange={handleChange}
+            className="form-input"
+            placeholder="e.g., Main Street, 5th Avenue"
+            required
+          />
+        </div>
+      </div>
+
+      {/* City & Country */}
+      <div className="form-row">
+        <div className="form-group">
+          <label htmlFor="city" className="form-label">
+            City <span className="required">*</span>
+          </label>
+          <input
+            type="text"
+            id="city"
+            name="city"
+            value={values.city}
+            onChange={handleChange}
+            className="form-input"
+            placeholder="e.g., New York, London"
             required
           />
         </div>
 
+        <div className="form-group">
+          <label htmlFor="country" className="form-label">
+            Country <span className="required">*</span>
+          </label>
+          <input
+            type="text"
+            id="country"
+            name="country"
+            value={values.country}
+            onChange={handleChange}
+            className="form-input"
+            placeholder="e.g., United States, United Kingdom"
+            required
+          />
+        </div>
+      </div>
+
+      {/* Phone & Email */}
+      <div className="form-row">
         <div className="form-group">
           <label htmlFor="phone" className="form-label">
             Phone Number
@@ -297,27 +607,32 @@ const BusinessForm = ({ form, previews, photoError, onPhotoChange, onRemovePhoto
             placeholder="(555) 123-4567"
           />
         </div>
+
+        <div className="form-group">
+          <label htmlFor="email" className="form-label">
+            Business Email <span className="required">*</span>
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            value={values.email}
+            onChange={handleChange}
+            className="form-input"
+            placeholder="contact@yourbusiness.com"
+            required
+          />
+        </div>
       </div>
 
-      {/* Location Map Preview */}
+      {/* Location Map Preview - using GPS coordinates or address */}
       <div className="form-group">
-        <LocationMap location={values.location} businessName={values.businessName} />
-      </div>
-
-      {/* Email */}
-      <div className="form-group">
-        <label htmlFor="email" className="form-label">
-          Business Email <span className="required">*</span>
-        </label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          value={values.email}
-          onChange={handleChange}
-          className="form-input"
-          placeholder="contact@yourbusiness.com"
-          required
+        <LocationMap 
+          location={values.location || `${values.street}, ${values.city}, ${values.country}`} 
+          businessName={values.businessName}
+          latitude={values.latitude}
+          longitude={values.longitude}
+          compact={true}
         />
       </div>
 
